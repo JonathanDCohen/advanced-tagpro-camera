@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TagPro Free-Moving Camera
 // @namespace    http://reddit.com/user/Splanky222
-// @version      1.0
+// @version      1.03
 // @description  Free-Moving Camera for TagPro
 // @author       BBQchicken
 // @include       http://tagpro-*.koalabeast.com*
@@ -24,7 +24,6 @@ function FreeCamera() {
 		}
 
 		function setCamera(position) {
-			tagpro.viewPort.followPlayer = false;
 			tagpro.viewPort.source = {
 				x: position.x,
 				y: position.y
@@ -38,15 +37,26 @@ function FreeCamera() {
 			};
 		}
 
-		function timedLoop(numFrames, func) {
-			(function centerLoop(n) {
+		function timedFor(numFrames, func) {
+			(function loop(n) {
                 func();
                 setTimeout(function() {
                     if (--n) {
-                        centerLoop(n);
+                        loop(n);
                     }
                 }, 1000/60);
             })(numFrames); 
+		}
+
+		function timedWhile(pred, func) {
+			(function loop() {
+				func();
+				setTimeout(function() {
+					if (pred()) {
+						loop();
+					}
+				}, 1000/60);
+			})();
 		}
 
 	// ---------- KEYHOLD HANDLER ---------- \\
@@ -70,30 +80,37 @@ function FreeCamera() {
 		};
 
 		this.keyUp = function() { 
-			clearInterval(loop); 
-			loop = false;
+			loop = clearInterval(loop); 
+			// loop = false;
 			console.log(loop);
 		}
 	}
 
-	// ---------- CENTERING HANDLER ---------- \\
+	function CameraLocation(_x, _y) {
+		this.x = _x;
+		this.y = _y;
 
-	function centerKey() {
-		var mapCenter = {x: tagpro.map.length * 20, y: tagpro.map[0].length * 20};
-		var centerZoomTime = 1;
-		var numFrames = Math.round(centerZoomTime * 60);
+		var loop = false;
 
-		this.keyDown = function() {
+		this.jumpTo = function() {
+			tagpro.viewPort.followPlayer = false;
+			setCamera(this);
+		};
+
+		this.moveTo = function() {
+			var numFrames - centerZoomTime * 60;
 			var delta = {
-				x: (mapCenter.x - tagpro.viewPort.source.x) / numFrames,
-				y: (mapCenter.y - tagpro.viewPort.source.y) / numFrames
+				x: (tagpro.viewPort.source.x - this.x) / numFrames,
+				y: (tagpro.viewPort.source.y - this.y) / numFrames
 			};
 
-			timedLoop(numFrames, function() {
-				tagpro.viewPort.source.x += delta.x;
-				tagpro.viewPort.source.y += delta.y;
+			timedFor(centerZoomTime * 60, function() {
+				tagpro.viewPort.followPlayer = false;
+				setCamera(plus(tagpro.viewPort.source, delta);
 			});
 		}
+
+
 	}
 
 	// ---------- MAIN LOGIC ---------- \\
@@ -107,30 +124,11 @@ function FreeCamera() {
 			new holdKey(UP)   
 		];
 
-		var centerHandler = new centerKey();
-
 		$(document).keydown(function(keyPress) {
 			if (isArrowKey(keyPress)) {
+				tagpro.viewPort.followPlayer = false;
 				setCamera(tagpro.viewPort.source)
 				keyHandlers[keyPress.keyCode - OFFSET].keyDown();
-			} else if (keyPress.keyCode === c) {
-				keyPress.preventDefault();
-				// // setCamera(mapCenter);
-				// var numFrames = Math.round(centerZoomTime * 60);
-				// var delta = {
-				// 	x: (mapCenter.x - tagpro.viewPort.source.x) / numFrames,
-				// 	y: (mapCenter.y - tagpro.viewPort.source.y) / numFrames
-				// };
-
-				// (function centerLoop(n) {
-	   //              setCamera(plus(tagpro.viewPort.source, delta));
-	   //              setTimeout(function() {
-	   //                  if (--n) {
-	   //                      centerLoop(n);
-	   //                  }
-	   //              }, 1000/60);
-	   //          })(numFrames);
-				centerHandler.keyDown();
 			}
 		});
 
