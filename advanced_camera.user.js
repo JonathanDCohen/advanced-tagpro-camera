@@ -98,7 +98,7 @@ function FreeCamera() {
 		};
 
 		this.moveTo = function() {
-			var numFrames - centerZoomTime * 60;
+			var numFrames = centerZoomTime * 60;
 			var delta = {
 				x: (tagpro.viewPort.source.x - this.x) / numFrames,
 				y: (tagpro.viewPort.source.y - this.y) / numFrames
