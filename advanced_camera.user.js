@@ -3,15 +3,52 @@
 // @namespace    http://reddit.com/user/Splanky222
 // @version      1.0
 // @description  Free-Moving Camera for TagPro
-// @author       You
+// @author       BBQchicken
 // @include       http://tagpro-*.koalabeast.com*
 // @include       http://tangent.jukejuice.com*
 // @include		  http://maptest*.newcompte.fr:*
 // @include       http://tagproandluckyspammersucksandunfortunatesniperisawesome.com*             
-// @grant        none
 // ==/UserScript==
 
 function FreeCamera() {	
+
+	// ---------- HELPERS AND CONSTANTS ---------- \\
+
+		var LEFT = 37, DOWN = 38, RIGHT = 39, UP = 40, OFFSET = 37, c = 67;
+		var mapCenter = {x: tagpro.map.length * 20, y: tagpro.map[0].length * 20};
+		var centerZoomTime = 1;
+
+		function isArrowKey(keyPress) {
+			var diff = keyPress.keyCode - OFFSET;
+			return (0 <= diff) && (diff < 4);
+		}
+
+		function setCamera(position) {
+			tagpro.viewPort.followPlayer = false;
+			tagpro.viewPort.source = {
+				x: position.x,
+				y: position.y
+			};
+		}
+
+		function plus(pos1, pos2) {
+			return {
+				x: pos1.x + pos2.x,
+				y: pos1.y + pos2.y
+			};
+		}
+
+		function timedLoop(numFrames, func) {
+			(function centerLoop(n) {
+                func();
+                setTimeout(function() {
+                    if (--n) {
+                        centerLoop(n);
+                    }
+                }, 1000/60);
+            })(numFrames); 
+		}
+
 	// ---------- KEYHOLD HANDLER ---------- \\
 
 	function holdKey(keyCode) {
@@ -39,31 +76,26 @@ function FreeCamera() {
 		}
 	}
 
-	// ---------- HELPERS AND CONSTANTS ---------- \\
+	// ---------- CENTERING HANDLER ---------- \\
 
-		var LEFT = 37, DOWN = 38, RIGHT = 39, UP = 40, OFFSET = 37, c = 67;
+	function centerKey() {
 		var mapCenter = {x: tagpro.map.length * 20, y: tagpro.map[0].length * 20};
 		var centerZoomTime = 1;
+		var numFrames = Math.round(centerZoomTime * 60);
 
-		function isArrowKey(keyPress) {
-			var diff = keyPress.keyCode - OFFSET;
-			return (0 <= diff) && (diff < 4);
-		}
-
-		function setCamera(position) {
-			tagpro.viewPort.followPlayer = false;
-			tagpro.viewPort.source = {
-				x: position.x,
-				y: position.y
+		this.keyDown = function() {
+			var delta = {
+				x: (mapCenter.x - tagpro.viewPort.source.x) / numFrames,
+				y: (mapCenter.y - tagpro.viewPort.source.y) / numFrames
 			};
-		}
 
-		function plus(pos1, pos2) {
-			return {
-				x: pos1.x + pos2.x,
-				y: pos1.y + pos2.y
-			};
+			timedLoop(numFrames, function() {
+				tagpro.viewPort.source.x += delta.x;
+				tagpro.viewPort.source.y += delta.y;
+			});
 		}
+	}
+
 	// ---------- MAIN LOGIC ---------- \\
 		
 		if (tagpro.spectator !== "watching") { return false; }
@@ -75,27 +107,30 @@ function FreeCamera() {
 			new holdKey(UP)   
 		];
 
+		var centerHandler = new centerKey();
+
 		$(document).keydown(function(keyPress) {
 			if (isArrowKey(keyPress)) {
 				setCamera(tagpro.viewPort.source)
 				keyHandlers[keyPress.keyCode - OFFSET].keyDown();
 			} else if (keyPress.keyCode === c) {
 				keyPress.preventDefault();
-				// setCamera(mapCenter);
-				var numFrames = Math.round(centerZoomTime * 60);
-				var delta = {
-					x: (mapCenter.x - tagpro.viewPort.source.x) / numFrames,
-					y: (mapCenter.y - tagpro.viewPort.source.y) / numFrames
-				};
+				// // setCamera(mapCenter);
+				// var numFrames = Math.round(centerZoomTime * 60);
+				// var delta = {
+				// 	x: (mapCenter.x - tagpro.viewPort.source.x) / numFrames,
+				// 	y: (mapCenter.y - tagpro.viewPort.source.y) / numFrames
+				// };
 
-				(function centerLoop(n) {
-	                setCamera(plus(tagpro.viewPort.source, delta));
-	                setTimeout(function() {
-	                    if (--n) {
-	                        centerLoop(n);
-	                    }
-	                }, 1000/60);
-	            })(numFrames); 
+				// (function centerLoop(n) {
+	   //              setCamera(plus(tagpro.viewPort.source, delta));
+	   //              setTimeout(function() {
+	   //                  if (--n) {
+	   //                      centerLoop(n);
+	   //                  }
+	   //              }, 1000/60);
+	   //          })(numFrames);
+				centerHandler.keyDown();
 			}
 		});
 
